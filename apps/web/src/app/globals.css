@@ -1,0 +1,28 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html, body {
+  background: #0B1220;
+  color: #E6EAF2;
+  font-family: Inter, "Space Grotesk", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.scopium-wordmark {
+  letter-spacing: 0.04em;
+  font-weight: 600;
+}
+
+.cytoscape-host {
+  background: #0F1828;
+  border-radius: 6px;
+}
+
+.maplibregl-map {
+  background: #0F1828;
+}

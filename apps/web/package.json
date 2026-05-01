@@ -1,0 +1,52 @@
+{
+  "name": "@scopium/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev -p 3000",
+    "build": "next build",
+    "start": "next start -p 3000",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "db:push": "drizzle-kit push",
+    "db:seed": "tsx src/db/seed.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "0.32.1",
+    "@scopium/ontology": "workspace:*",
+    "@scopium/query": "workspace:*",
+    "@scopium/connectors": "workspace:*",
+    "next": "15.0.3",
+    "react": "19.0.0-rc-69d4b800-20241021",
+    "react-dom": "19.0.0-rc-69d4b800-20241021",
+    "drizzle-orm": "0.36.1",
+    "postgres": "3.4.5",
+    "ulid": "2.3.0",
+    "zod": "3.23.8",
+    "cytoscape": "3.30.2",
+    "maplibre-gl": "4.7.1",
+    "recharts": "2.13.3",
+    "lucide-react": "0.453.0",
+    "clsx": "2.1.1",
+    "tailwind-merge": "2.5.4"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.48.2",
+    "@types/cytoscape": "3.21.7",
+    "@types/node": "22.7.5",
+    "@types/react": "18.3.12",
+    "@types/react-dom": "18.3.1",
+    "autoprefixer": "10.4.20",
+    "drizzle-kit": "0.28.0",
+    "eslint": "9.13.0",
+    "eslint-config-next": "15.0.3",
+    "postcss": "8.4.47",
+    "tailwindcss": "3.4.14",
+    "tsx": "4.19.1",
+    "typescript": "5.6.3",
+    "vitest": "2.1.3"
+  }
+}
