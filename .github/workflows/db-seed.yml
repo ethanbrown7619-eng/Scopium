@@ -1,0 +1,38 @@
+name: Seed NZ Companies Register
+
+# Pulls real NZ companies + directors + shareholders into your Supabase DB.
+# Triggered manually from the Actions tab; choose how many companies to ingest.
+# 200 is enough for a demo; 5000 takes ~30-60 minutes.
+
+on:
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: How many companies to ingest
+        required: true
+        default: "200"
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.12.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Run seed
+        run: pnpm --filter @scopium/web db:seed -- --limit=${{ inputs.limit }}
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          NZ_COMPANIES_REGISTER_BASE: ${{ vars.NZ_COMPANIES_REGISTER_BASE }}
+          NZ_COMPANIES_REGISTER_TOKEN: ${{ secrets.NZ_COMPANIES_REGISTER_TOKEN }}

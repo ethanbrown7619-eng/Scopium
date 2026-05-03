@@ -55,7 +55,13 @@ pnpm dev
 
 Open http://localhost:3000.
 
-## Deploying to Cloudflare Workers + Supabase
+## Deploying without local setup
+
+The fastest path is **GitHub Actions → Cloudflare + Supabase**, with no
+terminal involved. See [`DEPLOY.md`](./DEPLOY.md) for the click-by-click
+walkthrough.
+
+## Deploying to Cloudflare Workers + Supabase (from your laptop)
 
 Scopium ships as a single Cloudflare Worker via OpenNext. Postgres lives on
 Supabase; Cloudflare Hyperdrive proxies the connection so the Worker doesn't

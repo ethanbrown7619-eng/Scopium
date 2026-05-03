@@ -1,0 +1,29 @@
+name: Push DB Schema (Drizzle)
+
+# Run this once after creating your Supabase project (and again whenever the
+# schema changes). Click "Run workflow" on the Actions tab to trigger it.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.12.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Push schema
+        run: pnpm --filter @scopium/web db:push
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}

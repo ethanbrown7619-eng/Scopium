@@ -96,6 +96,9 @@ importers:
       autoprefixer:
         specifier: 10.4.20
         version: 10.4.20(postcss@8.4.47)
+      dotenv:
+        specifier: 16.4.5
+        version: 16.4.5
       drizzle-kit:
         specifier: 0.28.0
         version: 0.28.0
@@ -2815,8 +2818,8 @@ packages:
   dom-helpers@5.2.1:
     resolution: {integrity: sha512-nRCa7CK3VTrM2NmGkIy4cbK7IZlgBE/PYMn55rrXefr5xXDP0LdtfPnblFDoVdcAfslJ7or6iqAUnx0CCGIWQA==}
 
-  dotenv@16.6.1:
-    resolution: {integrity: sha512-uBq4egWHTcTt33a72vpSG0z3HnPuIl6NqYcTrKEg2azoEyl2hpW0zqlxysq2pK9HlDIHyHyakeYaYnSAwd8bow==}
+  dotenv@16.4.5:
+    resolution: {integrity: sha512-ZmdL2rui+eB2YwhsWzjInR8LldtZHGDoQ1ugH85ppHKwpUHL7j7rN0Ti9NCnGiQbhaZ11FpR+7ao1dNsmduNUg==}
     engines: {node: '>=12'}
 
   drizzle-kit@0.28.0:
@@ -5489,7 +5492,7 @@ snapshots:
   '@dotenvx/dotenvx@1.31.0':
     dependencies:
       commander: 11.1.0
-      dotenv: 16.6.1
+      dotenv: 16.4.5
       eciesjs: 0.4.18
       execa: 5.1.1
       fdir: 6.5.0(picomatch@4.0.4)
@@ -7434,7 +7437,7 @@ snapshots:
       '@babel/runtime': 7.29.2
       csstype: 3.2.3
 
-  dotenv@16.6.1: {}
+  dotenv@16.4.5: {}
 
   drizzle-kit@0.28.0:
     dependencies:

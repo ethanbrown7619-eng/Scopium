@@ -12,6 +12,11 @@ import "dotenv/config";
 import { NZCompaniesRegisterConnector } from "@scopium/connectors";
 import { persistMaterialised } from "./repository";
 
+if (!process.env.DATABASE_URL) {
+  console.error("DATABASE_URL is not set. In CI, set it as a repo secret. Locally, put it in .env.");
+  process.exit(1);
+}
+
 const limitArg = process.argv.find(a => a.startsWith("--limit="));
 const limit = limitArg ? Number(limitArg.split("=")[1]) : 5000;
 
