@@ -1,5 +1,8 @@
 node_modules/
 .next/
+.open-next/
+.cf-out/
+.wrangler/
 dist/
 build/
 .turbo/

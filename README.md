@@ -55,6 +55,73 @@ pnpm dev
 
 Open http://localhost:3000.
 
+## Deploying to Cloudflare Workers + Supabase
+
+Scopium ships as a single Cloudflare Worker via OpenNext. Postgres lives on
+Supabase; Cloudflare Hyperdrive proxies the connection so the Worker doesn't
+have to open raw TCP. Real Worker bundle size is **~1 MB gzipped**, which
+fits the free Workers plan (3 MB cap) with room to spare.
+
+### 1. Provision Supabase
+
+1. Create a project at https://supabase.com (Sydney region for NZ latency).
+2. In the SQL editor, enable the extensions Scopium uses:
+   ```sql
+   CREATE EXTENSION IF NOT EXISTS vector;
+   CREATE EXTENSION IF NOT EXISTS pg_trgm;
+   ```
+3. Project Settings → Database → Connection string → **Session pooler**.
+   Copy the URL (looks like `postgresql://postgres.xxx:PWD@aws-0-ap-southeast-2.pooler.supabase.com:5432/postgres`).
+
+### 2. Push the schema and seed (from your laptop)
+
+```bash
+DATABASE_URL="postgresql://postgres.xxx:...:5432/postgres" pnpm db:push
+DATABASE_URL="postgresql://postgres.xxx:...:5432/postgres" pnpm db:seed -- --limit=200
+```
+
+The seed runs as a Node process locally — Workers CPU limits don't apply.
+
+### 3. Create Hyperdrive
+
+```bash
+cd apps/web
+pnpm exec wrangler hyperdrive create scopium-db \
+  --connection-string="postgresql://postgres.xxx:...:5432/postgres"
+```
+
+It prints an `id`. Paste it into `apps/web/wrangler.toml`:
+
+```toml
+[[hyperdrive]]
+binding = "HYPERDRIVE"
+id = "PASTE_HERE"
+```
+
+### 4. Set secrets
+
+```bash
+pnpm exec wrangler secret put ANTHROPIC_API_KEY
+# paste your sk-ant-...
+```
+
+If you skip Hyperdrive, also `wrangler secret put DATABASE_URL`.
+
+### 5. Deploy
+
+```bash
+pnpm cf:deploy
+```
+
+That runs `opennextjs-cloudflare build` and `wrangler deploy`. First deploy
+also provisions a `*.workers.dev` URL.
+
+For a local preview that mirrors the Worker runtime:
+
+```bash
+pnpm cf:preview
+```
+
 ## Adding a new connector
 
 1. Create `packages/connectors/src/your-source.ts` exporting a class that

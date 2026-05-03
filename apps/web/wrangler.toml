@@ -1,0 +1,25 @@
+name = "scopium"
+compatibility_date = "2025-01-01"
+compatibility_flags = ["nodejs_compat"]
+main = ".open-next/worker.js"
+
+[assets]
+directory = ".open-next/assets"
+binding = "ASSETS"
+
+# Hyperdrive proxies your Supabase Postgres connection through Cloudflare's
+# edge connection pool. Create one with:
+#   wrangler hyperdrive create scopium-db --connection-string="$SUPABASE_URL"
+# Then paste the printed `id` here.
+# [[hyperdrive]]
+# binding = "HYPERDRIVE"
+# id = "REPLACE_ME"
+
+# Set with:
+#   wrangler secret put ANTHROPIC_API_KEY
+#   wrangler secret put DATABASE_URL  # only needed if you skip Hyperdrive
+[vars]
+ANTHROPIC_MODEL = "claude-sonnet-4-6"
+
+[observability]
+enabled = true
