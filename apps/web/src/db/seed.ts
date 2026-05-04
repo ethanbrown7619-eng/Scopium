@@ -1,15 +1,20 @@
 /**
- * Seed Scopium with ~5,000 real NZ companies plus their directors.
+ * Seed Scopium with NZ companies + their directors.
  *
- * Usage:
- *   ANTHROPIC_API_KEY=... DATABASE_URL=... pnpm db:seed
+ *   pnpm db:seed -- --limit=200            # synthetic data (default)
+ *   SEED_SOURCE=api pnpm db:seed -- --limit=200    # real Companies Register
  *
- * If NZ_COMPANIES_REGISTER_BASE/TOKEN are unset, this will hit the public
- * endpoint, which will rate-limit. For demos, point the env at a local
- * cache or pass --limit to keep things small.
+ * The real Companies Register API requires registration with Companies Office
+ * for an OAuth token. Without `NZ_COMPANIES_REGISTER_TOKEN`, stick to the
+ * synthetic source — it produces the same ontology shape so the workspace,
+ * query layer, and Ask palette work identically.
  */
 import "dotenv/config";
-import { NZCompaniesRegisterConnector } from "@scopium/connectors";
+import {
+  NZCompaniesRegisterConnector,
+  SyntheticCompaniesConnector,
+  type Connector,
+} from "@scopium/connectors";
 import { persistMaterialised } from "./repository";
 
 if (!process.env.DATABASE_URL) {
@@ -19,18 +24,23 @@ if (!process.env.DATABASE_URL) {
 
 const limitArg = process.argv.find(a => a.startsWith("--limit="));
 const limit = limitArg ? Number(limitArg.split("=")[1]) : 5000;
+const source = (process.env.SEED_SOURCE || "synthetic").toLowerCase();
 
-const connector = new NZCompaniesRegisterConnector({
-  baseUrl: process.env.NZ_COMPANIES_REGISTER_BASE ?? "https://api.companiesoffice.govt.nz/companies/v1",
-  token: process.env.NZ_COMPANIES_REGISTER_TOKEN,
-  search: "*",
-  limit,
-});
+const connector: Connector = source === "api"
+  ? new NZCompaniesRegisterConnector({
+      // `||` not `??` so an empty repo-var doesn't override the default.
+      baseUrl: process.env.NZ_COMPANIES_REGISTER_BASE || "https://api.companiesoffice.govt.nz/companies/v1",
+      token: process.env.NZ_COMPANIES_REGISTER_TOKEN || undefined,
+      search: "*",
+      limit,
+    })
+  : new SyntheticCompaniesConnector({ count: limit });
 
-console.log(`Scopium seed: pulling up to ${limit} NZ companies...`);
+console.log(`Scopium seed: source=${source} limit=${limit}`);
 
 const startedAt = Date.now();
-let totalObjects = 0, totalLinks = 0;
+let totalObjects = 0;
+let totalLinks = 0;
 
 const result = await connector.sync({
   fetchedBy: "seed-script",
@@ -38,7 +48,7 @@ const result = await connector.sync({
     await persistMaterialised(batch);
     totalObjects += batch.objects.length;
     totalLinks += batch.links.length;
-    if (totalObjects % 200 === 0) {
+    if (totalObjects > 0 && totalObjects % 200 === 0) {
       console.log(`...persisted ${totalObjects} objects, ${totalLinks} links`);
     }
   },

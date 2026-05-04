@@ -1,8 +1,9 @@
-name: Seed NZ Companies Register
+name: Seed Companies
 
-# Pulls real NZ companies + directors + shareholders into your Supabase DB.
-# Triggered manually from the Actions tab; choose how many companies to ingest.
-# 200 is enough for a demo; 5000 takes ~30-60 minutes.
+# Populates Supabase with NZ companies + directors. Default is synthetic
+# data (no third-party key needed). Switch source to `api` if you have
+# registered for a Companies Register OAuth token and added it as the
+# NZ_COMPANIES_REGISTER_TOKEN secret.
 
 on:
   workflow_dispatch:
@@ -11,6 +12,14 @@ on:
         description: How many companies to ingest
         required: true
         default: "200"
+      source:
+        description: Data source
+        required: true
+        default: "synthetic"
+        type: choice
+        options:
+          - synthetic
+          - api
 
 jobs:
   seed:
@@ -34,5 +43,5 @@ jobs:
         run: pnpm --filter @scopium/web db:seed -- --limit=${{ inputs.limit }}
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          NZ_COMPANIES_REGISTER_BASE: ${{ vars.NZ_COMPANIES_REGISTER_BASE }}
+          SEED_SOURCE: ${{ inputs.source }}
           NZ_COMPANIES_REGISTER_TOKEN: ${{ secrets.NZ_COMPANIES_REGISTER_TOKEN }}

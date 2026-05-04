@@ -94,12 +94,20 @@ That's it for setup.
 4. Wait ~1 minute. The dot turns green when it's done. If it fails, click
    the run to see what's wrong (usually a typo in `DATABASE_URL`).
 
-## Step 6 — Seed real NZ companies
+## Step 6 — Seed companies
 
-1. Actions tab → **Seed NZ Companies Register**.
-2. **Run workflow**. Pick a `limit`:
-   - `200` for a quick demo (~5 minutes).
-   - `5000` for a full demo dataset (~30–60 minutes).
+1. Actions tab → **Seed Companies**.
+2. **Run workflow**. Inputs:
+   - `limit`: how many companies to ingest. `200` is plenty for a demo;
+     `5000` exercises the workspace at full scale.
+   - `source`:
+     - `synthetic` (default) — procedurally-generated NZ companies +
+       directors. No third-party key needed. Same ontology shape as the
+       real connector, so the workspace and Ask palette behave identically.
+     - `api` — pulls from the real NZ Companies Register. Requires a
+       Companies Office OAuth token added as the
+       `NZ_COMPANIES_REGISTER_TOKEN` repo secret. Without one you'll get
+       401s; stick to `synthetic` unless you've registered for access.
 3. Click **Run workflow**. Wait for the green dot.
 
 ## Step 7 — Deploy to Cloudflare
