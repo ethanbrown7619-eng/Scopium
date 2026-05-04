@@ -1,31 +1,34 @@
 name: Seed Companies
 
-# Populates Supabase with NZ companies + directors. Default is synthetic
-# data (no third-party key needed). Switch source to `api` if you have
-# registered for a Companies Register OAuth token and added it as the
-# NZ_COMPANIES_REGISTER_TOKEN secret.
+# Populates Supabase with NZ public-sector data.
+#
+# Sources you can pick from (comma-separate to run multiple in one go):
+#   opencorporates  - real NZ companies via OpenCorporates (no key needed at low volume)
+#   nzbn            - NZBN register entities (needs NZBN_API_KEY secret)
+#   insolvency      - Insolvency proceedings (needs INSOLVENCY_API_KEY secret)
+#   iponz           - Trademarks/patents (needs IPONZ_API_KEY secret)
+#   lbp             - Licensed Building Practitioners (needs LBP_API_KEY secret)
+#   synthetic       - Procedurally-generated demo data (no key)
+#   all             - Run every source above whose key is set
+#
+# Get MBIE keys: https://api-portal.business.govt.nz → subscribe per API.
 
 on:
   workflow_dispatch:
     inputs:
       limit:
-        description: How many companies to ingest
+        description: Records per source
         required: true
         default: "200"
       source:
-        description: Data source
+        description: Source(s) — use 'all' to run everything that has a key set
         required: true
         default: "opencorporates"
-        type: choice
-        options:
-          - opencorporates
-          - synthetic
-          - api
 
 jobs:
   seed:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
 
@@ -46,4 +49,8 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           SEED_SOURCE: ${{ inputs.source }}
           OPENCORPORATES_API_TOKEN: ${{ secrets.OPENCORPORATES_API_TOKEN }}
+          NZBN_API_KEY: ${{ secrets.NZBN_API_KEY }}
+          INSOLVENCY_API_KEY: ${{ secrets.INSOLVENCY_API_KEY }}
+          IPONZ_API_KEY: ${{ secrets.IPONZ_API_KEY }}
+          LBP_API_KEY: ${{ secrets.LBP_API_KEY }}
           NZ_COMPANIES_REGISTER_TOKEN: ${{ secrets.NZ_COMPANIES_REGISTER_TOKEN }}
