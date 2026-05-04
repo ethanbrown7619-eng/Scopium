@@ -15,9 +15,10 @@ on:
       source:
         description: Data source
         required: true
-        default: "synthetic"
+        default: "opencorporates"
         type: choice
         options:
+          - opencorporates
           - synthetic
           - api
 
@@ -44,4 +45,5 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           SEED_SOURCE: ${{ inputs.source }}
+          OPENCORPORATES_API_TOKEN: ${{ secrets.OPENCORPORATES_API_TOKEN }}
           NZ_COMPANIES_REGISTER_TOKEN: ${{ secrets.NZ_COMPANIES_REGISTER_TOKEN }}

@@ -1,17 +1,18 @@
 /**
  * Seed Scopium with NZ companies + their directors.
  *
- *   pnpm db:seed -- --limit=200            # synthetic data (default)
- *   SEED_SOURCE=api pnpm db:seed -- --limit=200    # real Companies Register
+ *   SEED_SOURCE=opencorporates pnpm db:seed -- --limit=200    # REAL data
+ *   SEED_SOURCE=synthetic      pnpm db:seed -- --limit=200    # fabricated
+ *   SEED_SOURCE=api            pnpm db:seed -- --limit=200    # OAuth Companies Register
  *
- * The real Companies Register API requires registration with Companies Office
- * for an OAuth token. Without `NZ_COMPANIES_REGISTER_TOKEN`, stick to the
- * synthetic source — it produces the same ontology shape so the workspace,
- * query layer, and Ask palette work identically.
+ * Default is `opencorporates` — real NZ companies via the OpenCorporates
+ * public API. No key needed for ~500 calls/month; set OPENCORPORATES_API_TOKEN
+ * for higher quotas (free signup at https://opencorporates.com/users/sign_up).
  */
 import "dotenv/config";
 import {
   NZCompaniesRegisterConnector,
+  OpenCorporatesConnector,
   SyntheticCompaniesConnector,
   type Connector,
 } from "@scopium/connectors";
@@ -24,19 +25,25 @@ if (!process.env.DATABASE_URL) {
 
 const limitArg = process.argv.find(a => a.startsWith("--limit="));
 const limit = limitArg ? Number(limitArg.split("=")[1]) : 5000;
-const source = (process.env.SEED_SOURCE || "synthetic").toLowerCase();
+const source = (process.env.SEED_SOURCE || "opencorporates").toLowerCase();
+const withOfficers = process.env.SEED_WITH_OFFICERS !== "false";
 
-const connector: Connector = source === "api"
-  ? new NZCompaniesRegisterConnector({
-      // `||` not `??` so an empty repo-var doesn't override the default.
-      baseUrl: process.env.NZ_COMPANIES_REGISTER_BASE || "https://api.companiesoffice.govt.nz/companies/v1",
-      token: process.env.NZ_COMPANIES_REGISTER_TOKEN || undefined,
-      search: "*",
+const connector: Connector = source === "opencorporates"
+  ? new OpenCorporatesConnector({
+      apiToken: process.env.OPENCORPORATES_API_TOKEN || undefined,
       limit,
+      withOfficers,
     })
-  : new SyntheticCompaniesConnector({ count: limit });
+  : source === "api"
+    ? new NZCompaniesRegisterConnector({
+        baseUrl: process.env.NZ_COMPANIES_REGISTER_BASE || "https://api.companiesoffice.govt.nz/companies/v1",
+        token: process.env.NZ_COMPANIES_REGISTER_TOKEN || undefined,
+        search: "*",
+        limit,
+      })
+    : new SyntheticCompaniesConnector({ count: limit });
 
-console.log(`Scopium seed: source=${source} limit=${limit}`);
+console.log(`Scopium seed: source=${source} limit=${limit}${source === "opencorporates" ? ` withOfficers=${withOfficers}` : ""}`);
 
 const startedAt = Date.now();
 let totalObjects = 0;
