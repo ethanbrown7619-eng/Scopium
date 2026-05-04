@@ -39,11 +39,7 @@ jobs:
           command: deploy
           secrets: |
             AI_API_KEY
-            AI_PROVIDER
-            AI_MODEL
             DATABASE_URL
         env:
           AI_API_KEY: ${{ secrets.AI_API_KEY }}
-          AI_PROVIDER: ${{ vars.AI_PROVIDER || 'anthropic' }}
-          AI_MODEL: ${{ vars.AI_MODEL }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}

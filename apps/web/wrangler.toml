@@ -23,8 +23,8 @@ binding = "ASSETS"
 # default for the chosen provider). These can also be set as plain `[vars]`
 # entries below if you don't mind committing them.
 [vars]
-# AI_PROVIDER = "anthropic"
-# AI_MODEL = "claude-sonnet-4-6"
+AI_PROVIDER = "anthropic"
+# AI_MODEL = "claude-sonnet-4-6"  # uncomment to override the default for your provider
 
 [observability]
 enabled = true
