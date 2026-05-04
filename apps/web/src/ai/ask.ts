@@ -1,8 +1,6 @@
-import Anthropic from "@anthropic-ai/sdk";
 import { ontologySchemaForPrompt } from "@scopium/ontology";
-import { QueryAst, type QueryAst as QueryAstT } from "@scopium/query";
-
-const MODEL = process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-6";
+import type { QueryAst } from "@scopium/query";
+import { resolveProvider, type AskEvent, type ToolDef } from "./providers";
 
 const SYSTEM_PROMPT = (): string => `You are the Scopium analyst assistant. You help an analyst explore an
 ontology of NZ public-sector and business data.
@@ -20,14 +18,13 @@ ${ontologySchemaForPrompt()}
 
 Geographic terms in queries may use NZ region/territory/suburb names. If the
 user asks for a count or aggregate, set \`aggregate\` accordingly. Use
-\`traverse\` for relationship hops (e.g. directors of a company → other
-companies they direct).
+\`traverse\` for relationship hops.
 `;
 
-const QUERY_PLAN_TOOL: Anthropic.Tool = {
+const QUERY_PLAN_TOOL: ToolDef = {
   name: "query_plan",
   description: "Execute a typed Scopium query AST against the ontology store. Always use this rather than guessing.",
-  input_schema: {
+  schema: {
     type: "object",
     properties: {
       from: { type: "string", description: "Starting object type, e.g. NZCompany" },
@@ -41,84 +38,30 @@ const QUERY_PLAN_TOOL: Anthropic.Tool = {
   },
 };
 
-export type AskEvent =
-  | { kind: "thinking"; text: string }
-  | { kind: "plan"; ast: QueryAstT }
-  | { kind: "results"; rows: unknown[]; ids: string[] }
-  | { kind: "delta"; text: string }
-  | { kind: "done" }
-  | { kind: "error"; message: string };
-
-export type AskExecutor = (ast: QueryAstT) => Promise<{ rows: any[]; ids: string[] }>;
+export type { AskEvent };
+export type AskExecutor = (ast: QueryAst) => Promise<{ rows: any[]; ids: string[] }>;
 
 /**
- * Stream an answer for a free-form question.
- *  1. Ask Claude to emit a query_plan tool call.
- *  2. Validate AST, run it via `executor`.
- *  3. Feed results back to Claude, stream the natural-language answer.
+ * Stream an answer for a free-form question. Provider (Anthropic / OpenAI /
+ * Gemini) is selected via env: see apps/web/src/ai/providers/index.ts.
  */
 export async function* askStream(question: string, executor: AskExecutor): AsyncGenerator<AskEvent> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    yield { kind: "error", message: "ANTHROPIC_API_KEY is not set" };
+  const resolved = resolveProvider();
+  if (!resolved) {
+    yield {
+      kind: "error",
+      message:
+        "No AI provider configured. Set AI_PROVIDER (anthropic|openai|google) and AI_API_KEY, or set ANTHROPIC_API_KEY / OPENAI_API_KEY / GOOGLE_API_KEY.",
+    };
     return;
   }
-  const client = new Anthropic({ apiKey });
 
-  yield { kind: "thinking", text: "Planning query against ontology..." };
-
-  const planMsg = await client.messages.create({
-    model: MODEL,
-    max_tokens: 1024,
+  yield* resolved.provider({
     system: SYSTEM_PROMPT(),
-    tools: [QUERY_PLAN_TOOL],
-    tool_choice: { type: "tool", name: "query_plan" },
-    messages: [{ role: "user", content: question }],
+    question,
+    tool: QUERY_PLAN_TOOL,
+    apiKey: resolved.apiKey,
+    model: resolved.model,
+    runTool: executor,
   });
-
-  const toolUse = planMsg.content.find(b => b.type === "tool_use");
-  if (!toolUse || toolUse.type !== "tool_use") {
-    yield { kind: "error", message: "Model did not emit a query plan" };
-    return;
-  }
-
-  const parsed = QueryAst.safeParse(toolUse.input);
-  if (!parsed.success) {
-    yield { kind: "error", message: `Invalid query plan: ${parsed.error.message}` };
-    return;
-  }
-
-  yield { kind: "plan", ast: parsed.data };
-  yield { kind: "thinking", text: "Executing query..." };
-
-  const { rows, ids } = await executor(parsed.data);
-  yield { kind: "results", rows, ids };
-
-  // Stream the written answer with the rows fed back as a tool result.
-  const stream = client.messages.stream({
-    model: MODEL,
-    max_tokens: 1024,
-    system: SYSTEM_PROMPT(),
-    tools: [QUERY_PLAN_TOOL],
-    messages: [
-      { role: "user", content: question },
-      { role: "assistant", content: planMsg.content },
-      {
-        role: "user",
-        content: [{
-          type: "tool_result",
-          tool_use_id: toolUse.id,
-          content: JSON.stringify({ rows: rows.slice(0, 50), totalRows: rows.length, ids }),
-        }],
-      },
-    ],
-  });
-
-  for await (const event of stream) {
-    if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
-      yield { kind: "delta", text: event.delta.text };
-    }
-  }
-
-  yield { kind: "done" };
 }

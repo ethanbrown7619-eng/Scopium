@@ -15,11 +15,16 @@ binding = "ASSETS"
 # binding = "HYPERDRIVE"
 # id = "REPLACE_ME"
 
-# Set with:
-#   wrangler secret put ANTHROPIC_API_KEY
-#   wrangler secret put DATABASE_URL  # only needed if you skip Hyperdrive
+# Required Worker secrets (set via `wrangler secret put NAME`):
+#   AI_API_KEY      — your provider key (Anthropic, OpenAI, or Google)
+#   DATABASE_URL    — Supabase pooler URL (only needed if you skip Hyperdrive)
+#
+# Optional vars: AI_PROVIDER (anthropic|openai|google), AI_MODEL (override
+# default for the chosen provider). These can also be set as plain `[vars]`
+# entries below if you don't mind committing them.
 [vars]
-ANTHROPIC_MODEL = "claude-sonnet-4-6"
+# AI_PROVIDER = "anthropic"
+# AI_MODEL = "claude-sonnet-4-6"
 
 [observability]
 enabled = true

@@ -38,11 +38,18 @@ Four browser tabs:
 
    Keep this in a notepad — you'll paste it into GitHub in step 4.
 
-## Step 2 — Get an Anthropic API key
+## Step 2 — Get an AI API key (your choice of provider)
 
-1. Anthropic Console → **API keys → Create Key**.
-2. Copy the `sk-ant-...` value. Notepad it.
-3. Add at least $5 of credits under **Plans & Billing** if you haven't already.
+Scopium's Cmd-K Ask palette works with **Anthropic, OpenAI, or Google**.
+Pick one — you only need one key.
+
+| Provider | Where to get a key | Default model |
+|---|---|---|
+| **Anthropic** (Claude) | https://console.anthropic.com → API Keys → Create | `claude-sonnet-4-6` |
+| **OpenAI** (ChatGPT) | https://platform.openai.com/api-keys → Create new secret key | `gpt-4o` |
+| **Google** (Gemini) | https://aistudio.google.com/apikey → Create API key | `gemini-2.5-pro` |
+
+Copy the key. Notepad it. Make sure the account has credits / billing set up.
 
 ## Step 3 — Get a Cloudflare API token + account ID
 
@@ -60,15 +67,22 @@ Four browser tabs:
 
 In your Scopium repo on GitHub:
 
-1. **Settings → Secrets and variables → Actions → New repository secret**.
-2. Add each of these one by one:
+1. **Settings → Secrets and variables → Actions**.
+2. Under the **Secrets** tab → **New repository secret**, add:
 
    | Name | Value |
    |---|---|
    | `CLOUDFLARE_API_TOKEN` | the API token from step 3 |
    | `CLOUDFLARE_ACCOUNT_ID` | the account ID from step 3 |
    | `DATABASE_URL` | the Supabase pooler URL from step 1 |
-   | `ANTHROPIC_API_KEY` | the `sk-ant-...` from step 2 |
+   | `AI_API_KEY` | the AI key from step 2 |
+
+3. Under the **Variables** tab → **New repository variable**, add:
+
+   | Name | Value |
+   |---|---|
+   | `AI_PROVIDER` | `anthropic`, `openai`, or `google` (matches the key you chose) |
+   | `AI_MODEL` | *(optional)* override the default model |
 
 That's it for setup.
 
@@ -126,7 +140,7 @@ Everything is a workflow you re-run from the Actions tab:
 | Code (or the workflow auto-runs on push) | **Deploy to Cloudflare Workers** |
 | Schema | **Push DB Schema (Drizzle)** |
 | Want more seed data | **Seed NZ Companies Register** |
-| Need to rotate Anthropic key | Update the secret in repo settings, then re-run **Deploy** |
+| Need to rotate AI key or switch provider | Update `AI_API_KEY` (and `AI_PROVIDER`) in repo settings, then re-run **Deploy** |
 
 ## Troubleshooting
 
@@ -134,8 +148,8 @@ Everything is a workflow you re-run from the Actions tab:
   the build output; the easiest fix is upgrading to Workers Paid ($5/mo).
 - **`/api/query` returns 500**: usually `DATABASE_URL` typo, or you forgot
   step 5. Re-run the **Push DB Schema** workflow.
-- **`/api/ask` returns 401 from Anthropic**: re-paste the API key secret,
-  re-run **Deploy**.
+- **`/api/ask` returns 401**: AI key is wrong or for a different provider.
+  Re-check `AI_PROVIDER` matches the key, then re-run **Deploy**.
 - **Nothing in the workspace**: you skipped the seed. Run the **Seed**
   workflow.
 - **Live logs**: Cloudflare dashboard → **Workers & Pages → scopium →

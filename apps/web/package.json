@@ -18,7 +18,6 @@
     "cf:deploy": "opennextjs-cloudflare build && wrangler deploy"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "0.32.1",
     "@scopium/ontology": "workspace:*",
     "@scopium/query": "workspace:*",
     "@scopium/connectors": "workspace:*",
