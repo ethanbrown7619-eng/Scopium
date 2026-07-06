@@ -26,9 +26,12 @@ import {
   LicensedBuildingPractitionersConnector,
   OpenCorporatesConnector,
   SyntheticCompaniesConnector,
+  CharitiesConnector,
+  GazetteConnector,
   type Connector,
 } from "@scopium/connectors";
-import { persistMaterialised } from "./repository";
+import { persistMaterialised, persistRawCapture } from "./repository";
+import { resolvePeople } from "./resolve";
 
 if (!process.env.DATABASE_URL) {
   console.error("DATABASE_URL is not set. In CI, set it as a repo secret. Locally, put it in .env.");
@@ -39,7 +42,7 @@ const limitArg = process.argv.find(a => a.startsWith("--limit="));
 const limit = limitArg ? Number(limitArg.split("=")[1]) : 5000;
 const requested = (process.env.SEED_SOURCE || "opencorporates").toLowerCase();
 const sources = requested === "all"
-  ? ["opencorporates", "nzbn", "insolvency", "iponz", "lbp"]
+  ? ["charities", "opencorporates", "gazette", "nzbn", "insolvency", "iponz", "lbp"]
   : requested.split(",").map(s => s.trim()).filter(Boolean);
 
 const connectors: Connector[] = [];
@@ -76,6 +79,17 @@ for (const source of sources) {
         limit,
       }));
       break;
+    case "charities":
+      // Open OData API — no key, real NZ charities + officers.
+      connectors.push(new CharitiesConnector({ limit }));
+      break;
+    case "gazette":
+      // Public statutory notices → Event objects.
+      connectors.push(new GazetteConnector({
+        limit,
+        categories: ["Bankruptcy", "Liquidation & Receivership", "Companies"],
+      }));
+      break;
     case "synthetic":
       connectors.push(new SyntheticCompaniesConnector({ count: limit }));
       break;
@@ -106,12 +120,22 @@ for (const connector of connectors) {
         totalObjects += batch.objects.length;
         totalLinks += batch.links.length;
       },
+      emitRaw: persistRawCapture,
     });
     console.log(`  ✓ ${res.objectsEmitted} objects, ${res.linksEmitted} links in ${(res.durationMs / 1000).toFixed(1)}s`);
   } catch (err) {
     console.error(`  ✗ ${connector.id} failed: ${err instanceof Error ? err.message : String(err)}`);
     console.error(`  (continuing with other sources)`);
   }
+}
+
+// Resolve people across everything just ingested.
+console.log("→ resolving person identities…");
+try {
+  const r = await resolvePeople();
+  console.log(`  ✓ ${r.autoMerged} auto-merged, ${r.candidates} candidate links from ${r.personsConsidered} records`);
+} catch (err) {
+  console.error(`  ✗ resolution failed: ${err instanceof Error ? err.message : String(err)}`);
 }
 
 const elapsed = ((Date.now() - startedAt) / 1000).toFixed(1);

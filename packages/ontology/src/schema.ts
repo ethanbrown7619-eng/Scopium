@@ -6,8 +6,9 @@
 import { z } from "zod";
 import {
   Person, Organisation, Location, Asset, Event, Transaction, Document,
-  NZCompany, Iwi, Hapu, RegionalCouncil, TerritorialAuthority, Suburb, LINZParcel,
+  NZCompany, Iwi, Hapu, RegionalCouncil, TerritorialAuthority, Suburb, LINZParcel, Credential,
   DirectorOf, ShareholderOf, RegisteredAt, LocatedIn, PartyTo, Owns, MentionedIn,
+  OfficerOf, Holds, ProprietorOf, SameAs,
 } from "./types";
 
 type FieldDescriptor = { name: string; type: string; required: boolean; enum?: readonly string[] };
@@ -56,9 +57,12 @@ export type OntologySchemaSummary = {
 export const ontologySchemaSummary = (): OntologySchemaSummary => ({
   objects: [
     Person, Organisation, Location, Asset, Event, Transaction, Document,
-    NZCompany, Iwi, Hapu, RegionalCouncil, TerritorialAuthority, Suburb, LINZParcel,
+    NZCompany, Iwi, Hapu, RegionalCouncil, TerritorialAuthority, Suburb, LINZParcel, Credential,
   ].map(describeObject),
-  links: [DirectorOf, ShareholderOf, RegisteredAt, LocatedIn, PartyTo, Owns, MentionedIn].map(describeLink),
+  links: [
+    DirectorOf, ShareholderOf, RegisteredAt, LocatedIn, PartyTo, Owns, MentionedIn,
+    OfficerOf, Holds, ProprietorOf, SameAs,
+  ].map(describeLink),
 });
 
 /** Render the schema as a compact, model-friendly markdown blob. */

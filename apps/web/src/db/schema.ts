@@ -62,10 +62,37 @@ export const askLog = pgTable("ask_log", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+/**
+ * Two-phase landing zone. Every connector fetch is captured here immutably
+ * before parsing, so parsers can be fixed and re-run without re-fetching and
+ * every materialised fact is traceable to the exact bytes it came from.
+ */
+export const rawCaptures = pgTable(
+  "raw_captures",
+  {
+    id: text("id").primaryKey(),
+    connectorId: text("connector_id").notNull(),
+    sourceId: text("source_id").notNull(),
+    sourceUrl: text("source_url").notNull(),
+    contentHash: text("content_hash").notNull(),
+    httpStatus: text("http_status").notNull(),
+    parserVersion: text("parser_version").notNull(),
+    payload: jsonb("payload").notNull().$type<unknown>(),
+    fetchedAt: timestamp("fetched_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  t => ({
+    connectorIdx: index("raw_captures_connector_idx").on(t.connectorId),
+    sourceIdx: index("raw_captures_source_idx").on(t.sourceId),
+  }),
+);
+
 /** Raw extension bootstrap — applied via db:push by hand (drizzle-kit can't do CREATE EXTENSION). */
 export const bootstrap = sql`
   CREATE EXTENSION IF NOT EXISTS vector;
   CREATE EXTENSION IF NOT EXISTS pg_trgm;
+  -- Trigram index on person fullName for fast fuzzy name search.
+  CREATE INDEX IF NOT EXISTS objects_fullname_trgm
+    ON objects USING gin ((properties->>'fullName') gin_trgm_ops);
   -- AGE is optional; the query layer compiles to plain SQL.
   -- CREATE EXTENSION IF NOT EXISTS age;
 `;

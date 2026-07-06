@@ -125,7 +125,7 @@ export default function Workspace() {
           Ask Scopium
           <kbd className="ml-2 rounded border border-chrome-700 px-1.5 text-xs">⌘K</kbd>
         </button>
-        <span className="text-xs text-chrome-500">See the whole picture.</span>
+        <a href="/person" className="text-xs text-cyan-signal hover:underline">Who is…?</a>
       </header>
 
       {/* Left rail */}

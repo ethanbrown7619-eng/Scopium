@@ -1,7 +1,22 @@
-import type { Materialised } from "@scopium/connectors";
+import type { Materialised, RawCapture } from "@scopium/connectors";
 import { db } from "./client";
-import { objects, links } from "./schema";
+import { objects, links, rawCaptures } from "./schema";
 import { sql } from "drizzle-orm";
+
+/** Persist a raw capture to the two-phase landing zone. */
+export const persistRawCapture = async (c: RawCapture): Promise<void> => {
+  await db.insert(rawCaptures).values({
+    id: c.id,
+    connectorId: c.connectorId,
+    sourceId: c.sourceId,
+    sourceUrl: c.sourceUrl,
+    contentHash: c.contentHash,
+    httpStatus: String(c.httpStatus),
+    parserVersion: c.parserVersion,
+    payload: c.payload,
+    fetchedAt: new Date(c.fetchedAt),
+  }).onConflictDoNothing();
+};
 
 /** Bulk-upsert a connector batch. */
 export const persistMaterialised = async ({ objects: objs, links: lnks }: Materialised): Promise<void> => {
@@ -58,6 +73,45 @@ export const linksFor = async (ids: string[]): Promise<LinkRow[]> => {
      FROM links WHERE from_id IN (${list}) OR to_id IN (${list}) LIMIT 1000`,
   ));
   return (result as unknown as LinkRow[]) ?? [];
+};
+
+/** Fuzzy person search by name (trigram similarity), most-similar first. */
+export const searchPeopleByName = async (name: string, limit = 25): Promise<ObjectRow[]> => {
+  const safe = name.replace(/'/g, "''");
+  const result = await db.execute(sql.raw(
+    `SELECT id, type, classification, properties, provenance
+     FROM objects
+     WHERE type = 'Person'
+       AND (properties->>'fullName') % '${safe}'
+     ORDER BY similarity(properties->>'fullName', '${safe}') DESC
+     LIMIT ${Math.max(1, Math.min(100, limit))}`,
+  ));
+  return (result as unknown as ObjectRow[]) ?? [];
+};
+
+/** All person rows (id + attributes) for the resolver. */
+export const allPersonRows = async (): Promise<ObjectRow[]> => {
+  const result = await db.execute(sql.raw(
+    `SELECT id, type, classification, properties, provenance FROM objects WHERE type = 'Person'`,
+  ));
+  return (result as unknown as ObjectRow[]) ?? [];
+};
+
+/** Entity ids each person links to (for co-occurrence resolution signal). */
+export const personLinkedEntities = async (): Promise<Map<string, string[]>> => {
+  const result = await db.execute(sql.raw(
+    `SELECT l.from_id AS person_id, l.to_id AS entity_id
+     FROM links l JOIN objects o ON o.id = l.from_id
+     WHERE o.type = 'Person' AND l.type <> 'SameAs'`,
+  ));
+  const rows = (result as unknown as { person_id: string; entity_id: string }[]) ?? [];
+  const map = new Map<string, string[]>();
+  for (const r of rows) {
+    const arr = map.get(r.person_id) ?? [];
+    arr.push(r.entity_id);
+    map.set(r.person_id, arr);
+  }
+  return map;
 };
 
 /**

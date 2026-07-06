@@ -1,15 +1,17 @@
 name: Seed Companies
 
-# Populates Supabase with NZ public-sector data.
+# Populates Supabase with NZ public-sector data, then resolves person identities.
 #
 # Sources you can pick from (comma-separate to run multiple in one go):
-#   opencorporates  - real NZ companies via OpenCorporates (no key needed at low volume)
+#   charities       - NZ charities + officers via open OData API (NO KEY — best start)
+#   gazette         - Statutory notices → Event objects (no key)
+#   opencorporates  - real NZ companies via OpenCorporates (no key at low volume)
 #   nzbn            - NZBN register entities (needs NZBN_API_KEY secret)
 #   insolvency      - Insolvency proceedings (needs INSOLVENCY_API_KEY secret)
 #   iponz           - Trademarks/patents (needs IPONZ_API_KEY secret)
 #   lbp             - Licensed Building Practitioners (needs LBP_API_KEY secret)
 #   synthetic       - Procedurally-generated demo data (no key)
-#   all             - Run every source above whose key is set
+#   all             - charities + gazette + opencorporates + every keyed source
 #
 # Get MBIE keys: https://api-portal.business.govt.nz → subscribe per API.
 
@@ -21,9 +23,9 @@ on:
         required: true
         default: "200"
       source:
-        description: Source(s) — use 'all' to run everything that has a key set
+        description: Source(s) — 'charities' needs no key; 'all' runs everything
         required: true
-        default: "opencorporates"
+        default: "charities"
 
 jobs:
   seed:

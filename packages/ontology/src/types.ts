@@ -32,11 +32,23 @@ export const Person = objectType("Person", {
   fullName: z.string(),
   givenNames: z.string().optional(),
   familyName: z.string().optional(),
-  /** Te reo name with macrons preserved end-to-end. */
+  middleNames: z.string().optional(),
   teReoName: z.string().optional(),
-  dateOfBirth: ISODate.optional(),
-  /** Optional residential locality, not full address — privacy by default. */
+  /** Full or partial DOB (YYYY-MM-DD or YYYY). Strongest resolution signal. */
+  dateOfBirth: z.string().optional(),
+  /** Known aliases / alternate name orderings. */
+  aliases: z.array(z.string()).optional(),
+  occupation: z.string().optional(),
+  /**
+   * Locality (city/suburb) — safe to surface. Full residential addresses are
+   * NEVER stored here; they are suppressed at materialisation. See privacy.ts.
+   */
   residentialLocality: z.string().optional(),
+  /**
+   * True when this is a source-scoped record (one row from one register) as
+   * opposed to a resolved/canonical person. Resolution links records together.
+   */
+  sourceScoped: z.boolean().optional(),
 });
 
 export const Organisation = objectType("Organisation", {
@@ -137,6 +149,19 @@ export const LINZParcel = objectType("LINZParcel", {
   titleReference: z.string().optional(),
 });
 
+/** A professional/occupational licence or credential a Person holds. */
+export const Credential = objectType("Credential", {
+  /** e.g. "Licensed Building Practitioner", "Barrister & Solicitor". */
+  kind: z.string(),
+  /** Issuing body, e.g. "Real Estate Authority". */
+  register: z.string(),
+  licenceNumber: z.string().optional(),
+  status: z.enum(["Current", "Suspended", "Cancelled", "Expired", "Unknown"]).default("Unknown"),
+  scope: z.string().optional(),
+  startDate: ISODate.optional(),
+  endDate: ISODate.optional(),
+});
+
 /** ---------- Discriminated union of every object type ---------- */
 
 export const ScopiumObject = z.discriminatedUnion("type", [
@@ -154,6 +179,7 @@ export const ScopiumObject = z.discriminatedUnion("type", [
   TerritorialAuthority,
   Suburb,
   LINZParcel,
+  Credential,
 ]);
 export type ScopiumObject = z.infer<typeof ScopiumObject>;
 export type ScopiumObjectType = ScopiumObject["type"];
@@ -173,6 +199,7 @@ export const OBJECT_TYPES = [
   "TerritorialAuthority",
   "Suburb",
   "LINZParcel",
+  "Credential",
 ] as const satisfies readonly ScopiumObjectType[];
 
 /** ---------- Links (first-class typed edges) ---------- */
@@ -226,6 +253,43 @@ export const MentionedIn = linkType("MentionedIn", {
   confidence: z.number().min(0).max(1).optional(),
 });
 
+/** Person is an officer of a charity, incorporated society, or trust. */
+export const OfficerOf = linkType("OfficerOf", {
+  role: z.string().describe("e.g. 'Trustee', 'Chairperson', 'Secretary'"),
+  startDate: ISODate.optional(),
+  endDate: ISODate.optional(),
+  appointmentSource: z.string(),
+});
+
+/** Person holds a Credential issued by a regulator. */
+export const Holds = linkType("Holds", {
+  startDate: ISODate.optional(),
+  endDate: ISODate.optional(),
+});
+
+/** Person/Organisation is the registered proprietor of a LINZParcel/Asset. */
+export const ProprietorOf = linkType("ProprietorOf", {
+  tenure: z.string().optional(),
+  share: z.string().optional(),
+  asAtDate: ISODate.optional(),
+});
+
+/**
+ * Entity-resolution edge: asserts two source-scoped records are the same real
+ * person. Carries confidence, the signals that drove it, and the resolver
+ * version, so a merge is auditable and reversible.
+ */
+export const SameAs = linkType("SameAs", {
+  confidence: z.number().min(0).max(1),
+  method: z.enum(["deterministic", "probabilistic", "analyst-confirmed"]),
+  /** Human-readable signals, e.g. ["dob-match", "shared-address", "shared-company"]. */
+  signals: z.array(z.string()).default([]),
+  resolverVersion: z.string(),
+  /** Set when a human confirmed/rejected. */
+  confirmedBy: z.string().optional(),
+  status: z.enum(["candidate", "confirmed", "rejected"]).default("candidate"),
+});
+
 export const ScopiumLink = z.discriminatedUnion("type", [
   DirectorOf,
   ShareholderOf,
@@ -234,6 +298,10 @@ export const ScopiumLink = z.discriminatedUnion("type", [
   PartyTo,
   Owns,
   MentionedIn,
+  OfficerOf,
+  Holds,
+  ProprietorOf,
+  SameAs,
 ]);
 export type ScopiumLink = z.infer<typeof ScopiumLink>;
 export type ScopiumLinkType = ScopiumLink["type"];
@@ -246,4 +314,8 @@ export const LINK_TYPES = [
   "PartyTo",
   "Owns",
   "MentionedIn",
+  "OfficerOf",
+  "Holds",
+  "ProprietorOf",
+  "SameAs",
 ] as const satisfies readonly ScopiumLinkType[];
