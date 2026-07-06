@@ -47,7 +47,10 @@ function PersonSearch() {
     <div className="mx-auto max-w-3xl px-4 py-8">
       <div className="mb-6 flex items-center justify-between">
         <Wordmark />
-        <a href="/" className="text-xs text-chrome-500 hover:text-chrome-100">Workspace →</a>
+        <div className="flex gap-4 text-xs">
+          <a href="/person/merges" className="text-chrome-500 hover:text-chrome-100">Review merges</a>
+          <a href="/" className="text-chrome-500 hover:text-chrome-100">Workspace →</a>
+        </div>
       </div>
 
       <h1 className="mb-1 text-2xl text-chrome-50">Who is…</h1>

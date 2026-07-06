@@ -28,6 +28,8 @@ import {
   SyntheticCompaniesConnector,
   CharitiesConnector,
   GazetteConnector,
+  SanctionsConnector,
+  DisqualifiedDirectorsConnector,
   type Connector,
 } from "@scopium/connectors";
 import { persistMaterialised, persistRawCapture } from "./repository";
@@ -42,7 +44,7 @@ const limitArg = process.argv.find(a => a.startsWith("--limit="));
 const limit = limitArg ? Number(limitArg.split("=")[1]) : 5000;
 const requested = (process.env.SEED_SOURCE || "opencorporates").toLowerCase();
 const sources = requested === "all"
-  ? ["charities", "opencorporates", "gazette", "nzbn", "insolvency", "iponz", "lbp"]
+  ? ["charities", "opencorporates", "gazette", "sanctions", "nzbn", "insolvency", "iponz", "lbp", "disqualified"]
   : requested.split(",").map(s => s.trim()).filter(Boolean);
 
 const connectors: Connector[] = [];
@@ -88,6 +90,19 @@ for (const source of sources) {
       connectors.push(new GazetteConnector({
         limit,
         categories: ["Bankruptcy", "Liquidation & Receivership", "Companies"],
+      }));
+      break;
+    case "sanctions":
+      // NZ + international designated-persons screen (no key for default feed).
+      connectors.push(new SanctionsConnector({ limit }));
+      break;
+    case "disqualified":
+      if (!process.env.DISQUALIFIED_DIRECTORS_API_KEY) { console.warn("⚠ Skipping disqualified — DISQUALIFIED_DIRECTORS_API_KEY not set"); break; }
+      // Name-search API — seed sweeps common surname prefixes.
+      connectors.push(new DisqualifiedDirectorsConnector({
+        apiKey: process.env.DISQUALIFIED_DIRECTORS_API_KEY,
+        query: process.env.SEED_DD_QUERY || "a",
+        limit,
       }));
       break;
     case "synthetic":

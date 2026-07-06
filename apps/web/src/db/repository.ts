@@ -97,6 +97,38 @@ export const allPersonRows = async (): Promise<ObjectRow[]> => {
   return (result as unknown as ObjectRow[]) ?? [];
 };
 
+/** Candidate SameAs links awaiting analyst review, with both persons' names. */
+export const pendingMerges = async (limit = 50): Promise<any[]> => {
+  const result = await db.execute(sql.raw(`
+    SELECT l.id, l.from_id, l.to_id, l.properties,
+           a.properties->>'fullName' AS from_name,
+           b.properties->>'fullName' AS to_name,
+           a.properties->>'residentialLocality' AS from_locality,
+           b.properties->>'residentialLocality' AS to_locality
+    FROM links l
+    JOIN objects a ON a.id = l.from_id
+    JOIN objects b ON b.id = l.to_id
+    WHERE l.type = 'SameAs' AND (l.properties->>'status') = 'candidate'
+    ORDER BY (l.properties->>'confidence')::float DESC
+    LIMIT ${Math.max(1, Math.min(200, limit))}
+  `));
+  return (result as unknown as any[]) ?? [];
+};
+
+/** Set a SameAs link's review status (confirmed/rejected) with the reviewer. */
+export const setMergeStatus = async (linkId: string, status: "confirmed" | "rejected", by: string): Promise<void> => {
+  const safeId = linkId.replace(/'/g, "''");
+  const safeBy = by.replace(/'/g, "''");
+  await db.execute(sql.raw(`
+    UPDATE links
+    SET properties = jsonb_set(
+          jsonb_set(properties, '{status}', '"${status}"'),
+          '{confirmedBy}', '"${safeBy}"'),
+        updated_at = now()
+    WHERE id = '${safeId}' AND type = 'SameAs'
+  `));
+};
+
 /** Entity ids each person links to (for co-occurrence resolution signal). */
 export const personLinkedEntities = async (): Promise<Map<string, string[]>> => {
   const result = await db.execute(sql.raw(

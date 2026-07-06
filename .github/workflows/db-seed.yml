@@ -55,4 +55,5 @@ jobs:
           INSOLVENCY_API_KEY: ${{ secrets.INSOLVENCY_API_KEY }}
           IPONZ_API_KEY: ${{ secrets.IPONZ_API_KEY }}
           LBP_API_KEY: ${{ secrets.LBP_API_KEY }}
+          DISQUALIFIED_DIRECTORS_API_KEY: ${{ secrets.DISQUALIFIED_DIRECTORS_API_KEY }}
           NZ_COMPANIES_REGISTER_TOKEN: ${{ secrets.NZ_COMPANIES_REGISTER_TOKEN }}

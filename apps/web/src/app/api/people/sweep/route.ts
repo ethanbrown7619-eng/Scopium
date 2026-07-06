@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import {
   CompaniesOfficePublicConnector,
   CharitiesConnector,
+  CourtDecisionsConnector,
+  SanctionsConnector,
+  DisqualifiedDirectorsConnector,
   LicenceRegisterConnector,
   LICENCE_REGISTERS,
   type Connector,
@@ -30,9 +33,15 @@ export async function POST(req: Request) {
   const connectors: Connector[] = [
     new CompaniesOfficePublicConnector({ query: name, mode: "director", limit }),
     new CharitiesConnector({ limit: 100, officerName: name }),
+    new CourtDecisionsConnector({ query: name, limit }),
+    new SanctionsConnector({ query: name, limit }),
     ...Object.values(LICENCE_REGISTERS).map(
       d => new LicenceRegisterConnector({ descriptor: d, query: name, limit }),
     ),
+    // Companies Office disqualified-directors needs a subscription key.
+    ...(process.env.DISQUALIFIED_DIRECTORS_API_KEY
+      ? [new DisqualifiedDirectorsConnector({ apiKey: process.env.DISQUALIFIED_DIRECTORS_API_KEY, query: name, limit })]
+      : []),
   ];
 
   const sourceResults: { source: string; ok: boolean; objects?: number; error?: string }[] = [];

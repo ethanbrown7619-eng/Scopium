@@ -85,6 +85,90 @@ export const LICENCE_REGISTERS: Record<string, Omit<LicenceRegisterDescriptor, "
       locality: r.city,
     } : null,
   },
+  lawyers: {
+    id: "lawyers",
+    displayName: "Lawyers (NZLS)",
+    register: "New Zealand Law Society",
+    kind: "Barrister & Solicitor",
+    searchUrl: name => `https://www.lawsociety.org.nz/api/register/search?name=${encodeURIComponent(name)}`,
+    selectRows: b => b?.items ?? b?.results ?? [],
+    mapRow: r => r?.name || r?.fullName ? {
+      fullName: r.fullName ?? r.name, licenceNumber: r.registrationNumber,
+      status: r.status ?? (r.practising ? "Current" : undefined), scope: r.firm, locality: r.city,
+    } : null,
+  },
+  doctors: {
+    id: "doctors",
+    displayName: "Doctors (MCNZ)",
+    register: "Medical Council of New Zealand",
+    kind: "Medical Practitioner",
+    searchUrl: name => `https://www.mcnz.org.nz/api/register/search?name=${encodeURIComponent(name)}`,
+    selectRows: b => b?.items ?? b?.results ?? [],
+    mapRow: r => r?.name || r?.fullName ? {
+      fullName: r.fullName ?? r.name, licenceNumber: r.registrationNumber,
+      status: r.status, scope: r.vocationalScope, locality: r.city,
+    } : null,
+  },
+  nurses: {
+    id: "nurses",
+    displayName: "Nurses (NCNZ)",
+    register: "Nursing Council of New Zealand",
+    kind: "Registered Nurse",
+    searchUrl: name => `https://www.nursingcouncil.org.nz/api/register/search?name=${encodeURIComponent(name)}`,
+    selectRows: b => b?.items ?? b?.results ?? [],
+    mapRow: r => r?.name || r?.fullName ? {
+      fullName: r.fullName ?? r.name, licenceNumber: r.registrationNumber,
+      status: r.status, scope: r.scope, locality: r.city,
+    } : null,
+  },
+  teachers: {
+    id: "teachers",
+    displayName: "Teachers (Teaching Council)",
+    register: "Teaching Council of Aotearoa New Zealand",
+    kind: "Registered Teacher",
+    searchUrl: name => `https://teachingcouncil.nz/api/register/search?name=${encodeURIComponent(name)}`,
+    selectRows: b => b?.items ?? b?.results ?? [],
+    mapRow: r => r?.name || r?.fullName ? {
+      fullName: r.fullName ?? r.name, licenceNumber: r.registrationNumber,
+      status: r.status, locality: r.city,
+    } : null,
+  },
+  immigration: {
+    id: "immigration",
+    displayName: "Immigration Advisers (IAA)",
+    register: "Immigration Advisers Authority",
+    kind: "Licensed Immigration Adviser",
+    searchUrl: name => `https://www.iaa.govt.nz/api/advisers/search?name=${encodeURIComponent(name)}`,
+    selectRows: b => b?.items ?? b?.results ?? [],
+    mapRow: r => r?.name || r?.fullName ? {
+      fullName: r.fullName ?? r.name, licenceNumber: r.licenceNumber,
+      status: r.status, locality: r.city,
+    } : null,
+  },
+  pgdb: {
+    id: "pgdb",
+    displayName: "Plumbers, Gasfitters & Drainlayers",
+    register: "Plumbers, Gasfitters and Drainlayers Board",
+    kind: "Plumber/Gasfitter/Drainlayer",
+    searchUrl: name => `https://www.pgdb.co.nz/api/practitioners/search?name=${encodeURIComponent(name)}`,
+    selectRows: b => b?.items ?? b?.results ?? [],
+    mapRow: r => r?.name || r?.fullName ? {
+      fullName: r.fullName ?? r.name, licenceNumber: r.registrationNumber,
+      status: r.status, scope: r.licenceType, locality: r.city,
+    } : null,
+  },
+  ewrb: {
+    id: "ewrb",
+    displayName: "Electricians (EWRB)",
+    register: "Electrical Workers Registration Board",
+    kind: "Electrical Worker",
+    searchUrl: name => `https://www.ewrb.govt.nz/api/register/search?name=${encodeURIComponent(name)}`,
+    selectRows: b => b?.items ?? b?.results ?? [],
+    mapRow: r => r?.name || r?.fullName ? {
+      fullName: r.fullName ?? r.name, licenceNumber: r.registrationNumber,
+      status: r.status, scope: r.registrationType, locality: r.city,
+    } : null,
+  },
 };
 
 export type LicenceRegisterOptions = {

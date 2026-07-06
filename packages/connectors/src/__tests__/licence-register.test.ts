@@ -44,7 +44,10 @@ describe("LicenceRegisterConnector", () => {
     expect(links[0].toId).toBe(cred.id);
   });
 
-  it("exposes descriptors for LBP, REA, and FSPR", () => {
-    expect(Object.keys(LICENCE_REGISTERS).sort()).toEqual(["fspr", "lbp", "rea"]);
+  it("exposes descriptors for the free public licence registers", () => {
+    const keys = Object.keys(LICENCE_REGISTERS);
+    for (const expected of ["lbp", "rea", "fspr", "lawyers", "doctors", "nurses", "teachers", "immigration", "pgdb", "ewrb"]) {
+      expect(keys).toContain(expected);
+    }
   });
 });
