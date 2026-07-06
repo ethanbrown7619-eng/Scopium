@@ -1,6 +1,10 @@
 "use client";
 
+import { useMemo } from "react";
+import dynamic from "next/dynamic";
 import { ExternalLink, ShieldCheck, ShieldAlert } from "lucide-react";
+
+const GraphView = dynamic(() => import("./GraphView").then(m => m.GraphView), { ssr: false });
 
 type ObjectRow = { id: string; type: string; properties: Record<string, any>; provenance: any };
 type Profile = {
@@ -33,6 +37,27 @@ export function PersonProfile({ profile }: { profile: Profile }) {
     return d ? d.slice(0, 4) : undefined;
   }).filter(Boolean)));
 
+  const graph = useMemo(() => {
+    const clusterIds = new Set(profile.cluster.map(c => c.id));
+    const nodes = [
+      { id: "person", type: "Person", label: name },
+      ...Object.values(profile.connected).flat().map(o => ({
+        id: o.id, type: o.type, label: displayName(o),
+      })),
+    ];
+    const nodeIds = new Set(nodes.map(n => n.id));
+    const edges = profile.links
+      .filter(l => l.type !== "SameAs")
+      .map(l => {
+        // Collapse any cluster-member endpoint onto the single "person" node.
+        const from = clusterIds.has(l.from_id) ? "person" : l.from_id;
+        const to = clusterIds.has(l.to_id) ? "person" : l.to_id;
+        return { id: l.id, source: from, target: to, type: l.type };
+      })
+      .filter(e => nodeIds.has(e.source) && nodeIds.has(e.target));
+    return { nodes, edges };
+  }, [profile, name]);
+
   return (
     <div className="space-y-5">
       <header className="rounded-lg border border-chrome-700 bg-navy-800 p-4">
@@ -53,6 +78,14 @@ export function PersonProfile({ profile }: { profile: Profile }) {
           ))}
         </div>
       </header>
+
+      {graph.edges.length > 0 && (
+        <section className="rounded-lg border border-chrome-700 bg-navy-800 p-2">
+          <div className="h-64 w-full overflow-hidden rounded">
+            <GraphView nodes={graph.nodes} edges={graph.edges} selection={["person"]} onSelect={() => {}} />
+          </div>
+        </section>
+      )}
 
       {Object.entries(profile.connected).map(([type, rows]) => (
         <section key={type} className="rounded-lg border border-chrome-700 bg-navy-800 p-4">

@@ -2,6 +2,28 @@
 
 **See the whole picture.**
 
+## Person search — "Who is…?"
+
+Scopium's headline capability: type a **person's name** and it sweeps reputable
+public NZ sources to assemble a provenance-backed picture of who they are —
+companies they direct, charities they run, professional licences they hold,
+insolvency/court events, sanctions, and property. Every fact links back to its
+source register. See [`SOURCES.md`](./SOURCES.md) for the full catalogue and
+[`HANDOVER.md`](./HANDOVER.md) for the architecture.
+
+- **UI:** `/person` — **Search** (already-ingested data) vs **Sweep** (run live
+  connectors for a name), then a profile dossier grouping companies /
+  charities / licences / events, each with a source link and a cluster-
+  confidence badge. `/person/merges` reviews ambiguous identity matches.
+- **Entity resolution:** NZ has no public person id, so records are joined by
+  evidence (DOB, locality, shared entities). Auto-merge only on strong
+  evidence; ambiguous pairs become analyst-reviewable `SameAs` candidates.
+- **Privacy (Privacy Act 2020):** individuals' addresses are reduced to a
+  coarse locality at ingest (never street/number); name-suppressed court
+  matters are filtered; every field is provenance-stamped. See `privacy.ts`.
+
+
+
 Scopium is an ontology-driven data integration and analysis platform for
 Aotearoa New Zealand public-sector and business data. Think Foundry, but
 opinionated for NZ: ingest the Companies Register, StatsNZ, LINZ, and CKAN
