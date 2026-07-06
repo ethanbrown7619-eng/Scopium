@@ -14,7 +14,8 @@ export class IponzConnector extends MbieConnector {
   readonly version = "0.1.0";
   readonly displayName = "IPONZ";
   readonly description = "Real NZ trademarks, patents, and designs from IPONZ.";
-  protected readonly apiPath = "v5/iponz";
+  // Gateway path — verify against api-portal.business.govt.nz IPONZ v5 docs.
+  protected readonly apiPath = "iponz/v5";
 
   async sync(ctx: SyncContext): Promise<SyncResult> {
     const start = Date.now();

@@ -2,9 +2,36 @@
 
 > **Repo:** https://github.com/ethanbrown7619-eng/Scopium
 > **Branch:** `claude/build-scopium-platform-ZBcpM`
-> **Status:** End-to-end MVP scaffold complete; deployment in progress; one critical URL bug to fix in the MBIE connectors before the official NZ data sources will work.
+> **Status:** MVP + person-search built. The product goal is now: **type a
+> person's name → sweep reputable public NZ sources → assemble a
+> provenance-backed profile of who they are.** See `SOURCES.md` for the full
+> source catalogue and `§Person-search` below for the architecture.
 
 If you're picking this up: read this whole document first, then **start with §6 "Immediate next steps"**.
+
+## Person-search architecture (the current product)
+
+- **Source catalogue:** `SOURCES.md` — every reputable public NZ person source
+  in six tiers, with access method, name-searchability, and Privacy-Act flags.
+- **Two-phase connectors:** every fetch lands immutably in `raw_captures`
+  (schema.ts) before parsing, via `SyncContext.emitRaw`. Fix a parser, re-run
+  over stored captures — no re-crawl.
+- **Live person connectors:** `CharitiesConnector` (open OData, no key — the
+  flagship), `CompaniesOfficePublicConnector` (public register, name-driven),
+  `GazetteConnector` (Events), `LicenceRegisterConnector` (config-driven, one
+  class for all ~20 Tier-B licence registers; LBP/REA/FSPR descriptors shipped).
+- **Privacy (privacy.ts):** `sanitiseAddress()` reduces individuals' addresses
+  to a coarse NZ locality (never street/number); `displayDob()` coarsens to a
+  year. Applied at materialisation in every person connector. This is the
+  Privacy-Act-2020 posture — do not weaken it.
+- **Entity resolution:** `resolve.ts` (ontology, pure) scores person-record
+  pairs — auto-merge only on exact-name+DOB or exact-name+locality+shared-
+  entity; else a candidate. `apps/web/src/db/resolve.ts` runs it, writing
+  auditable, reversible `SameAs` links. `person-profile.ts` assembles a
+  resolved cluster + everything it connects to + contributing sources.
+- **API:** `/api/people/search` (fuzzy), `/api/people/[id]` (profile),
+  `/api/people/resolve`, `/api/people/sweep` (live name-driven sweep).
+- **UI:** `/person` — "Who is…" search + sweep + a PersonProfile dossier.
 
 ---
 
@@ -113,9 +140,16 @@ data with full provenance.
 └── HANDOVER.md                       this file
 ```
 
-## 4. KNOWN BUG — fix this first
+## 4. KNOWN BUG — FIXED (kept for context)
 
-The MBIE connectors (NZBN, Insolvency, IPONZ, LBP) point at the **wrong base
+**RESOLVED.** The MBIE connectors now build `/gateway/{apiPath}` (or
+`/sandbox/` when `environment: 'sandbox'`) and each `apiPath` was corrected to
+the gateway service form (e.g. `nzbn/v5`, `insolvency/v5`, `iponz/v5`,
+`lbp/v2`). **You must still verify each exact service path and response shape**
+against the api-portal.business.govt.nz operation docs before production — the
+paths are best-effort. Original description below.
+
+The MBIE connectors (NZBN, Insolvency, IPONZ, LBP) pointed at the **wrong base
 URL pattern**. The MBIE portal docs (https://api-portal.business.govt.nz)
 specify:
 

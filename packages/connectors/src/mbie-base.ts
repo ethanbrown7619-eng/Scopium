@@ -5,6 +5,8 @@ export type MbieOptions = {
   apiKey: string;
   /** Maximum records to ingest per sync. */
   limit: number;
+  /** production hits /gateway; sandbox hits /sandbox with a sandbox key. */
+  environment?: "production" | "sandbox";
   /** Override base URL for tests. */
   baseUrl?: string;
   /** Override fetch for tests. */
@@ -18,7 +20,13 @@ export type MbieOptions = {
  * (e.g. "v5/nzbnregister") and use `fetchJson()` to hit endpoints.
  */
 export abstract class MbieConnector extends Connector {
-  /** API path segment, e.g. "v5/nzbnregister" or "v5/insolvency". */
+  /**
+   * Service path under the MBIE gateway, e.g.
+   * "companies-office/nzbn/v5" or "companies-office/insolvency/v5".
+   * The full URL is https://api.business.govt.nz/{gateway|sandbox}/{apiPath}.
+   * Verify each service's exact path in the api-portal.business.govt.nz docs
+   * before production — the operation pages list the resource path.
+   */
   protected abstract readonly apiPath: string;
 
   constructor(protected readonly opts: MbieOptions) { super(); }
@@ -28,7 +36,9 @@ export abstract class MbieConnector extends Connector {
   }
 
   protected baseUrl(): string {
-    return this.opts.baseUrl ?? `https://api.business.govt.nz/services/${this.apiPath}`;
+    if (this.opts.baseUrl) return this.opts.baseUrl;
+    const stage = this.opts.environment === "sandbox" ? "sandbox" : "gateway";
+    return `https://api.business.govt.nz/${stage}/${this.apiPath}`;
   }
 
   protected async fetchJson(path: string, params?: Record<string, string | number>): Promise<any> {

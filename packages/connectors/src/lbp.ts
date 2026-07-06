@@ -15,7 +15,8 @@ export class LicensedBuildingPractitionersConnector extends MbieConnector {
   readonly version = "0.1.0";
   readonly displayName = "Licensed Building Practitioners";
   readonly description = "Real NZ Licensed Building Practitioners (designers, carpenters, roofers, plasterers, etc.).";
-  protected readonly apiPath = "v2/lbp";
+  // Gateway path — verify against api-portal.business.govt.nz LBP v2 docs.
+  protected readonly apiPath = "lbp/v2";
 
   async sync(ctx: SyncContext): Promise<SyncResult> {
     const start = Date.now();

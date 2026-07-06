@@ -1,4 +1,5 @@
 import { MbieConnector } from "./mbie-base";
+import { sanitiseAddress } from "@scopium/ontology";
 import type { ScopiumObject, ScopiumLink } from "@scopium/ontology";
 import type { Materialised, SyncContext, SyncResult } from "./base";
 
@@ -15,7 +16,8 @@ export class InsolvencyConnector extends MbieConnector {
   readonly version = "0.1.0";
   readonly displayName = "Insolvency Register";
   readonly description = "Real NZ insolvency proceedings (bankruptcies, liquidations, debt repayment orders).";
-  protected readonly apiPath = "v5/insolvency";
+  // Gateway path — verify against api-portal.business.govt.nz Insolvency v5 docs.
+  protected readonly apiPath = "insolvency/v5";
 
   async sync(ctx: SyncContext): Promise<SyncResult> {
     const start = Date.now();
@@ -88,7 +90,15 @@ export class InsolvencyConnector extends MbieConnector {
         createdAt: now, updatedAt: now,
         properties: isCompany
           ? { name: debtorName, nzbn: "0000000000000", companyNumber: caseId, status: "InLiquidation" }
-          : { fullName: debtorName },
+          : {
+              fullName: debtorName,
+              // Insolvency is one of the few sources exposing DOB — the
+              // strongest person-resolution anchor. Kept full for matching.
+              dateOfBirth: (item.dateOfBirth ?? item.dob ?? "").slice(0, 10) || undefined,
+              occupation: item.occupation,
+              residentialLocality: sanitiseAddress(item.address ?? item.debtorAddress),
+              sourceScoped: true,
+            },
       } as ScopiumObject);
       links.push({
         id: this.newId(),

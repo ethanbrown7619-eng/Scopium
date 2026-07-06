@@ -15,7 +15,8 @@ export class NzbnConnector extends MbieConnector {
   readonly version = "0.1.0";
   readonly displayName = "NZBN Register";
   readonly description = "Real NZ business entities from the New Zealand Business Number register.";
-  protected readonly apiPath = "v5/nzbnregister";
+  // Gateway path — verify against api-portal.business.govt.nz NZBN v5 docs.
+  protected readonly apiPath = "nzbn/v5";
 
   async sync(ctx: SyncContext): Promise<SyncResult> {
     const start = Date.now();
