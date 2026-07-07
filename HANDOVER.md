@@ -9,6 +9,23 @@
 
 If you're picking this up: read this whole document first, then **start with §6 "Immediate next steps"**.
 
+## Search-first + watchlist (current flow)
+
+**No seeding required.** The primary flow is live:
+- `/person` — enter a name + optional known facts (DOB, locality, occupation).
+  `POST /api/people/sweep` → `sweepPerson()` (db/sweep.ts) runs every
+  name-driven connector, persists with raw-capture provenance, re-resolves,
+  and returns matches ranked by fit. Click one → assembled profile.
+- **Watchlist** — "Watch & notify" adds the person (`/api/watchlist`), which
+  baselines their profile silently. The **Watchlist Monitor** workflow
+  (`.github/workflows/watch-monitor.yml`, daily cron) runs
+  `pnpm --filter @scopium/web monitor` → `runMonitor()` (db/watchlist.ts):
+  re-sweeps each watched person, diffs source keys against `known_keys`, and
+  records a `watch_findings` row per genuinely-new item. `/person/watchlist`
+  shows the feed with unseen badges. (Email notify is a stub — wire a
+  provider via `notifyEmail` later.)
+- Seeding still exists for bulk backfill but is optional.
+
 ## Person-search architecture (the current product)
 
 - **Source catalogue:** `SOURCES.md` — every reputable public NZ person source

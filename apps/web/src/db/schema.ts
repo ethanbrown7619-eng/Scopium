@@ -63,6 +63,46 @@ export const askLog = pgTable("ask_log", {
 });
 
 /**
+ * People a user is monitoring. Each carries the search name plus optional
+ * "known facts" (DOB, locality, occupation) used to disambiguate, and a
+ * fingerprint of the last assembled profile so the monitor can detect change.
+ */
+export const watchlist = pgTable(
+  "watchlist",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    knownFacts: jsonb("known_facts").notNull().default({}).$type<Record<string, unknown>>(),
+    /** Person object id anchored to, once resolved. */
+    anchorId: text("anchor_id"),
+    /** Stable hash of the last profile's contributing source records. */
+    fingerprint: text("fingerprint"),
+    /** Source keys already seen, so the monitor reports only true deltas. */
+    knownKeys: jsonb("known_keys").notNull().default([]).$type<string[]>(),
+    notifyEmail: text("notify_email"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    lastSweptAt: timestamp("last_swept_at", { withTimezone: true }),
+  },
+  t => ({ nameIdx: index("watchlist_name_idx").on(t.name) }),
+);
+
+/** New information surfaced for a watched person since the last sweep. */
+export const watchFindings = pgTable(
+  "watch_findings",
+  {
+    id: text("id").primaryKey(),
+    watchId: text("watch_id").notNull().references(() => watchlist.id, { onDelete: "cascade" }),
+    summary: text("summary").notNull(),
+    /** The new object ids that triggered this finding. */
+    objectIds: jsonb("object_ids").notNull().$type<string[]>(),
+    source: text("source"),
+    seen: text("seen").notNull().default("false"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  t => ({ watchIdx: index("watch_findings_watch_idx").on(t.watchId) }),
+);
+
+/**
  * Two-phase landing zone. Every connector fetch is captured here immutably
  * before parsing, so parsers can be fixed and re-run without re-fetching and
  * every materialised fact is traceable to the exact bytes it came from.

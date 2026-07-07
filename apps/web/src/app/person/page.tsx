@@ -1,40 +1,41 @@
 "use client";
 
 import { useState, useCallback, Suspense } from "react";
-import { Search, Loader2, Radar } from "lucide-react";
+import { Loader2, Radar, Bell, Plus } from "lucide-react";
 import { Wordmark } from "@/components/Wordmark";
 import { PersonProfile } from "@/components/PersonProfile";
 
-type PersonRow = { id: string; properties: Record<string, any>; provenance: any };
+type PersonRow = { id: string; properties: Record<string, any>; provenance: any; fitScore?: number };
 
 function PersonSearch() {
   const [name, setName] = useState("");
+  const [dob, setDob] = useState("");
+  const [locality, setLocality] = useState("");
+  const [occupation, setOccupation] = useState("");
   const [results, setResults] = useState<PersonRow[]>([]);
   const [profile, setProfile] = useState<any>(null);
-  const [status, setStatus] = useState<"idle" | "searching" | "sweeping" | "loading-profile">("idle");
-  const [sweepReport, setSweepReport] = useState<any[] | null>(null);
+  const [status, setStatus] = useState<"idle" | "sweeping" | "loading-profile">("idle");
+  const [report, setReport] = useState<any[] | null>(null);
+  const [watched, setWatched] = useState(false);
 
-  const search = useCallback(async () => {
-    if (name.trim().length < 2) return;
-    setStatus("searching"); setProfile(null); setSweepReport(null);
-    const res = await fetch(`/api/people/search?q=${encodeURIComponent(name)}`);
-    const data = await res.json();
-    setResults(data.people ?? []);
-    setStatus("idle");
-  }, [name]);
+  const facts = () => ({
+    dateOfBirth: dob || undefined,
+    locality: locality || undefined,
+    occupation: occupation || undefined,
+  });
 
-  const sweep = useCallback(async () => {
+  const find = useCallback(async () => {
     if (name.trim().length < 2) return;
-    setStatus("sweeping"); setProfile(null);
+    setStatus("sweeping"); setProfile(null); setWatched(false);
     const res = await fetch("/api/people/sweep", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name }),
+      body: JSON.stringify({ name, facts: facts() }),
     });
     const data = await res.json();
     setResults(data.people ?? []);
-    setSweepReport(data.sourceResults ?? null);
+    setReport(data.sourceResults ?? null);
     setStatus("idle");
-  }, [name]);
+  }, [name, dob, locality, occupation]);
 
   const openProfile = useCallback(async (id: string) => {
     setStatus("loading-profile");
@@ -43,11 +44,20 @@ function PersonSearch() {
     setStatus("idle");
   }, []);
 
+  const watch = useCallback(async () => {
+    await fetch("/api/watchlist", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, facts: facts() }),
+    });
+    setWatched(true);
+  }, [name, dob, locality, occupation]);
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
       <div className="mb-6 flex items-center justify-between">
         <Wordmark />
         <div className="flex gap-4 text-xs">
+          <a href="/person/watchlist" className="flex items-center gap-1 text-chrome-500 hover:text-chrome-100"><Bell size={12} /> Watchlist</a>
           <a href="/person/merges" className="text-chrome-500 hover:text-chrome-100">Review merges</a>
           <a href="/" className="text-chrome-500 hover:text-chrome-100">Workspace →</a>
         </div>
@@ -55,50 +65,52 @@ function PersonSearch() {
 
       <h1 className="mb-1 text-2xl text-chrome-50">Who is…</h1>
       <p className="mb-4 text-sm text-chrome-500">
-        Search reputable public NZ registers to assemble a provenance-backed picture of a person.
+        Enter a name and anything you already know. Scopium searches reputable public NZ
+        registers live and assembles a provenance-backed profile — nothing to pre-load.
       </p>
 
-      <div className="flex gap-2">
-        <div className="flex flex-1 items-center gap-2 rounded border border-chrome-700 bg-navy-800 px-3 py-2">
-          <Search size={16} className="text-chrome-500" />
-          <input
-            value={name}
-            onChange={e => setName(e.target.value)}
-            onKeyDown={e => { if (e.key === "Enter") search(); }}
-            placeholder="e.g. Jane Smith"
-            className="w-full bg-transparent text-base outline-none placeholder-chrome-500"
-          />
+      <div className="space-y-2">
+        <input
+          value={name} onChange={e => setName(e.target.value)}
+          onKeyDown={e => { if (e.key === "Enter") find(); }}
+          placeholder="Full name — e.g. Jane Smith"
+          className="w-full rounded border border-chrome-700 bg-navy-800 px-3 py-2.5 text-base outline-none placeholder-chrome-500 focus:border-cyan-signal"
+        />
+        <div className="grid grid-cols-3 gap-2">
+          <input value={dob} onChange={e => setDob(e.target.value)} placeholder="Born (YYYY or YYYY-MM-DD)"
+            className="rounded border border-chrome-700 bg-navy-800 px-3 py-2 text-sm outline-none placeholder-chrome-600 focus:border-cyan-signal" />
+          <input value={locality} onChange={e => setLocality(e.target.value)} placeholder="Locality (e.g. Wellington)"
+            className="rounded border border-chrome-700 bg-navy-800 px-3 py-2 text-sm outline-none placeholder-chrome-600 focus:border-cyan-signal" />
+          <input value={occupation} onChange={e => setOccupation(e.target.value)} placeholder="Occupation"
+            className="rounded border border-chrome-700 bg-navy-800 px-3 py-2 text-sm outline-none placeholder-chrome-600 focus:border-cyan-signal" />
         </div>
-        <button onClick={search} disabled={status !== "idle"}
-          className="rounded border border-chrome-700 bg-navy-700 px-4 text-sm hover:border-cyan-signal disabled:opacity-50">
-          Search
-        </button>
-        <button onClick={sweep} disabled={status !== "idle"}
-          className="flex items-center gap-1.5 rounded bg-cyan-signal/15 px-4 text-sm text-cyan-signal hover:bg-cyan-signal/25 disabled:opacity-50">
-          {status === "sweeping" ? <Loader2 size={14} className="animate-spin" /> : <Radar size={14} />}
-          Sweep sources
-        </button>
+        <div className="flex gap-2">
+          <button onClick={find} disabled={status !== "idle" || name.trim().length < 2}
+            className="flex items-center gap-1.5 rounded bg-cyan-signal/15 px-4 py-2 text-sm text-cyan-signal hover:bg-cyan-signal/25 disabled:opacity-50">
+            {status === "sweeping" ? <Loader2 size={14} className="animate-spin" /> : <Radar size={14} />}
+            {status === "sweeping" ? "Searching sources…" : "Find this person"}
+          </button>
+          <button onClick={watch} disabled={name.trim().length < 2 || watched}
+            className="flex items-center gap-1.5 rounded border border-chrome-700 px-4 py-2 text-sm text-chrome-300 hover:border-amber-alert hover:text-amber-alert disabled:opacity-50">
+            {watched ? <><Bell size={14} /> Watching</> : <><Plus size={14} /> Watch & notify</>}
+          </button>
+        </div>
       </div>
 
-      <p className="mt-2 text-[11px] text-chrome-600">
-        <strong>Search</strong> looks in already-ingested data. <strong>Sweep</strong> runs live
-        connectors (Companies Register, Charities, licence registers) for this name — slower, polite (~1 req/sec).
-      </p>
-
-      {sweepReport && (
+      {report && (
         <div className="mt-4 rounded border border-chrome-700 bg-navy-800 p-3 text-xs">
-          <div className="mb-1 text-chrome-500">Sweep results:</div>
+          <div className="mb-1 text-chrome-500">Searched {report.length} sources:</div>
           <div className="flex flex-wrap gap-2">
-            {sweepReport.map((s: any) => (
-              <span key={s.source} className={s.ok ? "text-cyan-signal" : "text-chrome-600"}>
-                {s.source}: {s.ok ? `${s.objects ?? 0} records` : "unavailable"}
+            {report.map((s: any) => (
+              <span key={s.source} className={s.ok && s.objects ? "text-cyan-signal" : "text-chrome-600"}>
+                {s.source}{s.ok ? ` (${s.objects ?? 0})` : " ✕"}
               </span>
             ))}
           </div>
         </div>
       )}
 
-      {status === "searching" && <div className="mt-6 text-sm text-chrome-500">Searching…</div>}
+      {status === "sweeping" && <div className="mt-6 text-sm text-chrome-500">Sweeping public registers (polite, ~1 req/sec)…</div>}
 
       {!profile && results.length > 0 && (
         <ul className="mt-6 space-y-1">
@@ -114,6 +126,14 @@ function PersonSearch() {
             </li>
           ))}
         </ul>
+      )}
+
+      {!profile && results.length === 0 && report && status === "idle" && (
+        <div className="mt-6 rounded-lg border border-chrome-700 bg-navy-800 p-6 text-sm text-chrome-500">
+          No matching people found in the searched registers. Try fewer known facts, or
+          <button onClick={watch} className="ml-1 text-amber-alert hover:underline">watch this name</button> to be
+          notified if they surface later.
+        </div>
       )}
 
       {status === "loading-profile" && <div className="mt-6 text-sm text-chrome-500">Assembling profile…</div>}

@@ -13,6 +13,7 @@
     "test:e2e": "playwright test",
     "db:push": "drizzle-kit push",
     "db:seed": "tsx src/db/seed.ts",
+    "monitor": "tsx src/db/monitor.ts",
     "cf:build": "opennextjs-cloudflare build",
     "cf:preview": "opennextjs-cloudflare build && wrangler dev",
     "cf:deploy": "opennextjs-cloudflare build && wrangler deploy"

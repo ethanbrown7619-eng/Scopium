@@ -87,3 +87,28 @@ export const buildPersonProfile = async (seedId: string): Promise<PersonProfile 
 
   return { seedId, cluster, clusterConfidence, connected, links: linkRows, sources };
 };
+
+/**
+ * Stable fingerprint of a profile's contributing source records, for change
+ * detection by the monitor. Uses provenance sourceIds (stable upstream keys)
+ * so re-running the same sweep yields the same fingerprint unless genuinely
+ * new records appeared.
+ */
+export const profileFingerprint = (profile: PersonProfile): string => {
+  const keys = [...profile.cluster, ...Object.values(profile.connected).flat()]
+    .map(o => String((o.provenance as any)?.sourceId ?? o.id))
+    .sort();
+  let h = 0x811c9dc5;
+  const s = keys.join("|");
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193); }
+  return (h >>> 0).toString(16).padStart(8, "0");
+};
+
+/** Provenance sourceIds present in a profile — used to diff old vs new. */
+export const profileSourceKeys = (profile: PersonProfile): { key: string; id: string; type: string; label: string }[] =>
+  [...Object.values(profile.connected).flat()].map(o => ({
+    key: String((o.provenance as any)?.sourceId ?? o.id),
+    id: o.id,
+    type: o.type,
+    label: String(o.properties.name ?? o.properties.fullName ?? o.properties.title ?? o.properties.kind ?? o.id),
+  }));
